@@ -471,7 +471,7 @@ static int aspeed_adc_probe(struct platform_device *pdev)
 	spin_lock_init(&data->clk_lock);
 	clk_parent_name = of_clk_get_parent_name(pdev->dev.of_node, 0);
 	if (model_data->version <= aspeed_adc_ast2500) {
-		/* ADC clock period = PCLK * 2 * (ADC0C[31:17] + 1) * (ADC0C[9:0] + 1) */
+		/* ADC clock period = PCLK * 2 * (ADC0C[31:17] + 1) * ADC0C[9:0] */
 		data->fixed_div_clk = clk_hw_register_fixed_factor(
 			&pdev->dev, "fixed-div", clk_parent_name, 0, 1, 2);
 		if (IS_ERR(data->fixed_div_clk))
@@ -488,10 +488,9 @@ static int aspeed_adc_probe(struct platform_device *pdev)
 		 * setting to adjust the prescaler as well.
 		 */
 		data->clk_scaler = clk_hw_register_divider(
-					&pdev->dev, "scaler", "prescaler",
-					CLK_SET_RATE_PARENT,
-					data->base + ASPEED_REG_CLOCK_CONTROL,
-					0, 10, 0, &data->clk_lock);
+			&pdev->dev, "scaler", "prescaler", CLK_SET_RATE_PARENT,
+			data->base + ASPEED_REG_CLOCK_CONTROL, 0, 10,
+			CLK_DIVIDER_ONE_BASED, &data->clk_lock);
 		if (IS_ERR(data->clk_scaler)) {
 			ret = PTR_ERR(data->clk_scaler);
 			goto scaler_error;
