@@ -485,14 +485,6 @@
 	status = "okay";
 };
 
-&pcie {
-	status = "okay";
-};
-
-&h2x {
-	status = "okay";
-};
-
 &adc0 {
 	vref = <2500>;
 	battery-sensing;
