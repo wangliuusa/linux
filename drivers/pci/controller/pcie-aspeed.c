@@ -19,7 +19,7 @@
 #include <linux/regmap.h>
 #include <linux/reset.h>
 
-#include "../../pci.h"
+#include "../pci.h"
 
 /*	PCI Host Controller registers */
 #define ASPEED_PCIE_CLASS_CODE		0x04
