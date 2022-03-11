@@ -171,6 +171,8 @@
 
 #define SHA_FLAGS_FINUP			BIT(25)
 
+#define DUMMY_KEY_SIZE			32
+
 struct aspeed_hace_dev;
 
 typedef int (*aspeed_hace_fn_t)(struct aspeed_hace_dev *);
@@ -207,6 +209,7 @@ struct aspeed_cipher_ctx {
 	struct aspeed_hace_dev		*hace_dev;
 	aspeed_hace_fn_t		start;
 	int 				key_len;
+	int				dummy_key;
 	u8				key[AES_MAX_KEYLENGTH];
 	u8				sub_key[16]; // for aes gcm
 	struct crypto_skcipher		*aes; // for caculating gcm(aes) subkey
@@ -344,6 +347,7 @@ struct aspeed_ecdh_ctx {
 
 struct aspeed_hace_dev {
 	void __iomem			*regs;
+	void __iomem			*sec_regs;
 	struct device			*dev;
 	int 				irq;
 	struct clk			*yclk;
@@ -397,5 +401,7 @@ extern int aspeed_hace_rsa_trigger(struct aspeed_hace_dev *hace_dev);
 extern int aspeed_register_hace_crypto_algs(struct aspeed_hace_dev *hace_dev);
 extern int aspeed_register_hace_hash_algs(struct aspeed_hace_dev *hace_dev);
 extern int aspeed_register_hace_rsa_algs(struct aspeed_hace_dev *hace_dev);
+
+extern int find_dummy_key(const char *key, int keylen);
 
 #endif
