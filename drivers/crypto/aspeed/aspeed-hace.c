@@ -322,8 +322,8 @@ static int aspeed_hace_remove(struct platform_device *pdev)
 	//aspeed_hace_unregister();
 	// tasklet_kill(&hace_dev->done_task);
 	// tasklet_kill(&hace_dev->queue_task);
-	kzfree(dummy_key1);
-	kzfree(dummy_key2);
+	kfree(dummy_key1);
+	kfree(dummy_key2);
 	return 0;
 }
 
