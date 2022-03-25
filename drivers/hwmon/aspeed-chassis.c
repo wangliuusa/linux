@@ -16,6 +16,8 @@
 #include <linux/platform_device.h>
 #include <linux/sysfs.h>
 #include <linux/interrupt.h>
+
+/* #define USE_INTERRUPTS */
 /******************************************************************************/
 union chassis_ctrl_register {
 	uint32_t value;
@@ -104,7 +106,7 @@ static const struct attribute_group intrusion_dev_group = {
 	.attrs = intrusion_dev_attrs,
 	.is_visible = NULL,
 };
-
+#ifdef USE_INTERRUPTS
 static void aspeed_chassis_status_check(struct aspeed_chassis *chassis)
 {
 	union chassis_ctrl_register chassis_ctrl;
@@ -117,7 +119,7 @@ static void aspeed_chassis_status_check(struct aspeed_chassis *chassis)
 		chassis_ctrl.fields.intrusion_status_clear = 0;
 		writel(chassis_ctrl.value, chassis->base);
 	}
-	chassis_ctrl.value = readl(chassis->base);
+
 	if (chassis_ctrl.fields.core_power_status) {
 		dev_info(chassis->dev, "Core power has been pulled low");
 		chassis_ctrl.fields.core_power_status_clear = 1;
@@ -126,7 +128,6 @@ static void aspeed_chassis_status_check(struct aspeed_chassis *chassis)
 		writel(chassis_ctrl.value, chassis->base);
 	}
 
-	chassis_ctrl.value = readl(chassis->base);
 	if (chassis_ctrl.fields.io_power_status) {
 		dev_info(chassis->dev, "IO power has been pulled low");
 		chassis_ctrl.fields.io_power_status_clear = 1;
@@ -143,6 +144,18 @@ static irqreturn_t aspeed_chassis_isr(int this_irq, void *dev_id)
 	aspeed_chassis_status_check(chassis);
 	return IRQ_HANDLED;
 }
+#endif
+
+static void aspeed_chassis_int_ctrl(struct aspeed_chassis *chassis, bool ctrl)
+{
+	union chassis_ctrl_register chassis_ctrl;
+
+	chassis_ctrl.value = readl(chassis->base);
+	chassis_ctrl.fields.intrusion_int_enable = ctrl;
+	chassis_ctrl.fields.io_power_int_enable = ctrl;
+	chassis_ctrl.fields.core_power_int_enable = ctrl;
+	writel(chassis_ctrl.value, chassis->base);
+}
 
 static const struct of_device_id aspeed_chassis_of_table[] = {
 	{ .compatible = "aspeed,ast2600-chassis" },
@@ -155,7 +168,7 @@ static int aspeed_chassis_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct aspeed_chassis *priv;
 	struct device *hwmon;
-	int ret;
+	int __maybe_unused ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -165,12 +178,11 @@ static int aspeed_chassis_probe(struct platform_device *pdev)
 	priv->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(priv->base))
 		return PTR_ERR(priv->base);
-
+#ifdef USE_INTERRUPTS
 	priv->irq = platform_get_irq(pdev, 0);
 	if (priv->irq < 0) {
 		dev_err(dev, "no irq specified\n");
-		ret = -ENOENT;
-		return ret;
+		return -ENOENT;
 	}
 
 	ret = devm_request_irq(dev, priv->irq, aspeed_chassis_isr, 0,
@@ -179,6 +191,10 @@ static int aspeed_chassis_probe(struct platform_device *pdev)
 		dev_err(dev, "Chassis Unable to get IRQ");
 		return ret;
 	}
+	aspeed_chassis_int_ctrl(priv, true);
+#else
+	aspeed_chassis_int_ctrl(priv, false);
+#endif
 
 	priv->groups[0] = &intrusion_dev_group;
 	priv->groups[1] = NULL;
