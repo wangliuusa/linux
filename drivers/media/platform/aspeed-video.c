@@ -2449,6 +2449,9 @@ static int aspeed_video_probe(struct platform_device *pdev)
 			dev_err(video->dev, "can't find regmap for scu");
 		if (IS_ERR(video->gfx))
 			dev_err(video->dev, "can't find regmap for gfx");
+	} else {
+		video->scu = ERR_PTR(-ENODEV);
+		video->gfx = ERR_PTR(-ENODEV);
 	}
 
 	rc = aspeed_video_init(video);
