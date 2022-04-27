@@ -1759,7 +1759,8 @@
 		resets = <&syscon ASPEED_RESET_I3C0>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i3c1_default>;
@@ -1779,7 +1780,8 @@
 		resets = <&syscon ASPEED_RESET_I3C1>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i3c2_default>;
@@ -1799,7 +1801,8 @@
 		resets = <&syscon ASPEED_RESET_I3C2>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>;
 		aspeed,scu = <&syscon>;
 
@@ -1817,7 +1820,8 @@
 		resets = <&syscon ASPEED_RESET_I3C3>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH>;
 		aspeed,scu = <&syscon>;
 
@@ -1835,7 +1839,8 @@
 		resets = <&syscon ASPEED_RESET_I3C4>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i3c5_default>;
@@ -1855,7 +1860,8 @@
 		resets = <&syscon ASPEED_RESET_I3C5>;
 		i2c-scl-hz = <400000>;
 		i3c-scl-hz = <12500000>;
-		sda-tx-hold = <1>;
+		sda-tx-hold-ns = <5>;
+		timed-reset-scl-low-ns = <52428800>;
 		interrupts = <GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i3c6_default>;
