@@ -4,6 +4,7 @@
 
 #define pr_fmt(fmt) "clk-ast2600: " fmt
 
+#include <linux/bitfield.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
@@ -33,6 +34,17 @@
 #define ASPEED_G6_CLK_SELECTION2	0x304
 #define ASPEED_G6_CLK_SELECTION4	0x310
 #define ASPEED_G6_CLK_SELECTION5	0x314
+#define   I3C_CLK_SELECTION		BIT(31)
+#define     I3C_CLK_SELECT_HCLK		0
+#define     I3C_CLK_SELECT_APLL_DIV	1
+#define   APLL_DIV_SELECTION		GENMASK(30, 28)
+#define     APLL_DIV_2			0b001
+#define     APLL_DIV_3			0b010
+#define     APLL_DIV_4			0b011
+#define     APLL_DIV_5			0b100
+#define     APLL_DIV_6			0b101
+#define     APLL_DIV_7			0b110
+#define     APLL_DIV_8			0b111
 
 #define ASPEED_HPLL_PARAM		0x200
 #define ASPEED_APLL_PARAM		0x210
@@ -68,6 +80,8 @@ static DEFINE_SPINLOCK(aspeed_g6_clk_lock);
 static struct clk_hw_onecell_data *aspeed_g6_clk_data;
 
 static void __iomem *scu_g6_base;
+/* AST2600 revision: A0, A1, A2, etc */
+static u8 soc_rev;
 
 struct mac_delay_config {
 	u32 tx_delay_1000;
@@ -170,7 +184,7 @@ static struct aspeed_gate_data aspeed_g6_gates[] = {
 	[ASPEED_CLK_GATE_UART8CLK]	= { 56,  -1, "uart8clk-gate",	"uxclk", 0 },	/* UART8 */
 	[ASPEED_CLK_GATE_UART9CLK]	= { 57,  -1, "uart9clk-gate",	"uxclk", 0 },	/* UART9 */
 	[ASPEED_CLK_GATE_UART10CLK]	= { 58,  -1, "uart10clk-gate",	"uxclk", 0 },	/* UART10 */
-	[ASPEED_CLK_GATE_UART11CLK]	= { 59,  -1, "uart11clk-gate",	"uxclk", 0 },	/* UART11 */
+	[ASPEED_CLK_GATE_UART11CLK]	= { 59,  -1, "uart11clk-gate",	"uxclk", CLK_IS_CRITICAL },	/* UART11 */
 	[ASPEED_CLK_GATE_UART12CLK]	= { 60,  -1, "uart12clk-gate",	"uxclk", 0 },	/* UART12 */
 	[ASPEED_CLK_GATE_UART13CLK]	= { 61,  -1, "uart13clk-gate",	"uxclk", 0 },	/* UART13 */
 	[ASPEED_CLK_GATE_FSICLK]	= { 62,  59, "fsiclk-gate",	NULL,	 0 },	/* FSI */
@@ -298,9 +312,8 @@ static struct clk_hw *ast2600_calc_pll(const char *name, u32 val)
 static struct clk_hw *ast2600_calc_apll(const char *name, u32 val)
 {
 	unsigned int mult, div;
-	u32 chip_id = readl(scu_g6_base + ASPEED_G6_SILICON_REV);
 
-	if (((chip_id & CHIP_REVISION_ID) >> 16) >= 2) {
+	if (soc_rev >= 2) {
 		if (val & BIT(24)) {
 			/* Pass through mode */
 			mult = div = 1;
@@ -724,15 +737,9 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
 	if (IS_ERR(hw))
 		return PTR_ERR(hw);
 	aspeed_g6_clk_data->hws[ASPEED_CLK_LHCLK] = hw;
-	
-#if 0
-#if 0
-	//gfx use dp clk
-	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), BIT(10));
-#else
-	//hpll
-	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), GENMASK(10, 8));
-#endif
+
+	/* gfx d1clk : use usb phy */
+	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), BIT(9));
 	/* SoC Display clock selection */
 	hw = clk_hw_register_mux(dev, "d1clk", d1clk_parent_names,
 			ARRAY_SIZE(d1clk_parent_names), 0,
@@ -741,28 +748,9 @@ static int aspeed_g6_clk_probe(struct platform_device *pdev)
 	if (IS_ERR(hw))
 		return PTR_ERR(hw);
 	aspeed_g6_clk_data->hws[ASPEED_CLK_D1CLK] = hw;
-#if 0
-	//dpll div 2
-	//d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1
-//	regmap_write(map, 0x308, 0xa000); //2x3 = 6
-	//d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1
-	regmap_write(map, 0x308, 0x1000);
-#else
-	//hpll div 6
-	regmap_write(map, 0x308, 0x1b000);
-#endif	
-#else
-	//gfx usb phy
-	regmap_update_bits(map, ASPEED_G6_CLK_SELECTION1, GENMASK(10, 8), BIT(9));
-	/* SoC Display clock selection */
-	hw = clk_hw_register_mux(dev, "d1clk", d1clk_parent_names,
-			ARRAY_SIZE(d1clk_parent_names), 0,
-			scu_g6_base + 0x300, 8, 3, 0,
-			&aspeed_g6_clk_lock);
-	if (IS_ERR(hw))
-		return PTR_ERR(hw);
-	aspeed_g6_clk_data->hws[ASPEED_CLK_D1CLK] = hw;
-#endif
+
+	/* d1 clk div 0x308[17:15] x [14:12] - 8,7,6,5,4,3,2,1 */
+	regmap_write(map, 0x308, 0x12000); /* 3x3 = 9 */
 
 	/* P-Bus (BCLK) clock divider */
 	hw = clk_hw_register_divider_table(dev, "bclk", "epll", 0,
@@ -992,19 +980,21 @@ static void __init aspeed_g6_cc(struct regmap *map)
 	hw = clk_hw_register_fixed_factor(NULL, "huxclk", "uartx", 0, mult, div);
 	aspeed_g6_clk_data->hws[ASPEED_CLK_HUXCLK] = hw;
 
-	//* i3c clock */
+	/* i3c clock */
 	regmap_read(map, ASPEED_G6_CLK_SELECTION5, &val);
-	if(val & BIT(31)) {
-		val = (val >> 28) & 0x7;
-		if(val)
+	if (FIELD_GET(I3C_CLK_SELECTION, val) == I3C_CLK_SELECT_APLL_DIV) {
+		val = FIELD_GET(APLL_DIV_SELECTION, val);
+		if (val)
 			div = val + 1;
 		else
 			div = val + 2;
-		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "apll", 0, 1, div);
+		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "apll", 0, 1,
+						  div);
 	} else {
-		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "ahb", 0, 1, 1);
+		hw = clk_hw_register_fixed_factor(NULL, "i3cclk", "ahb", 0, 1,
+						  1);
 	}
-	aspeed_g6_clk_data->hws[ASPEED_CLK_I3C] = hw;	
+	aspeed_g6_clk_data->hws[ASPEED_CLK_I3C] = hw;
 
 };
 
@@ -1021,6 +1011,8 @@ static void __init aspeed_g6_cc_init(struct device_node *np)
 	scu_g6_base = of_iomap(np, 0);
 	if (!scu_g6_base)
 		return;
+
+	soc_rev = (readl(scu_g6_base + ASPEED_G6_SILICON_REV) & CHIP_REVISION_ID) >> 16;
 
 	aspeed_g6_clk_data = kzalloc(struct_size(aspeed_g6_clk_data, hws,
 				      ASPEED_G6_NUM_CLKS), GFP_KERNEL);
