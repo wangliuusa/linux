@@ -136,6 +136,8 @@ enum i3c_dcr {
  * @max_read_turnaround: max read turn-around time in micro-seconds
  * @max_read_len: max private SDR read length in bytes
  * @max_write_len: max private SDR write length in bytes
+ * @pec: flag telling whether PEC (Packet Error Check) generation and verification for read
+ *       and write transaction is enabled
  *
  * These are all basic information that should be advertised by an I3C device.
  * Some of them are optional depending on the device type and device
@@ -157,6 +159,7 @@ struct i3c_device_info {
 	u32 max_read_turnaround;
 	u16 max_read_len;
 	u16 max_write_len;
+	u8 pec;
 	__be16 status;
 };
 
@@ -369,5 +372,7 @@ int i3c_device_setmrl_ccc(struct i3c_device *dev, struct i3c_device_info *info, 
 int i3c_device_setmwl_ccc(struct i3c_device *dev, struct i3c_device_info *info, u16 write_len);
 int i3c_device_getmrl_ccc(struct i3c_device *dev, struct i3c_device_info *info);
 int i3c_device_getmwl_ccc(struct i3c_device *dev, struct i3c_device_info *info);
+
+int i3c_device_control_pec(struct i3c_device *dev, bool pec);
 
 #endif /* I3C_DEV_H */
