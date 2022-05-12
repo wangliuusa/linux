@@ -1637,7 +1637,7 @@ static int ast2600_i2c_probe(struct platform_device *pdev)
 
 	if (of_property_read_bool(pdev->dev.of_node, "smbus-alert")) {
 		i2c_bus->alert_enable = 1;
-		i2c_bus->ara = i2c_new_smbus_alert_device(&i2c_bus->adap, &i2c_bus->alert_data);
+	i2c_bus->ara = i2c_setup_smbus_alert(&i2c_bus->adap, &i2c_bus->alert_data);
 		if (!i2c_bus->ara)
 			dev_warn(i2c_bus->dev, "Failed to register ARA client\n");
 
