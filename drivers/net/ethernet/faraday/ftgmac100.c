@@ -2115,6 +2115,7 @@ static int ftgmac100_probe(struct platform_device *pdev)
 			err = -EINVAL;
 			if (priv->use_fixed_phy)
 				of_phy_deregister_fixed_link(pdev->dev.of_node);
+
 			goto err_setup_mdio;
 		}
 

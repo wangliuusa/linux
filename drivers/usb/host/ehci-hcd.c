@@ -636,7 +636,7 @@ static int ehci_run (struct usb_hcd *hcd)
 	msleep(5);
 
 	/* For Aspeed, STS_HALT also depends on ASS/PSS status.
-	 * Skip this check on startup.
+	 * Check CMD_RUN instead.
 	 */
 	if (ehci->is_aspeed)
 		rc = ehci_handshake(ehci, &ehci->regs->command, CMD_RUN,
