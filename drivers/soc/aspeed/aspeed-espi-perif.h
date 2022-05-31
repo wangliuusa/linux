@@ -79,7 +79,7 @@ static long aspeed_espi_perif_pc_get_rx(struct file *fp,
 	 */
 	switch (cyc) {
 	case ESPI_PERIF_MSG:
-		pkt_len = len + sizeof(struct espi_perif_msg);
+		pkt_len = sizeof(struct espi_perif_msg);
 		break;
 	case ESPI_PERIF_MSG_D:
 		pkt_len = ((len)? len : ESPI_PLD_LEN_MAX) +
@@ -94,7 +94,7 @@ static long aspeed_espi_perif_pc_get_rx(struct file *fp,
 		break;
 	case ESPI_PERIF_SUC_CMPLT:
 	case ESPI_PERIF_UNSUC_CMPLT:
-		pkt_len = len + sizeof(struct espi_perif_cmplt);
+		pkt_len = sizeof(struct espi_perif_cmplt);
 		break;
 	default:
 		return -EFAULT;
