@@ -1440,6 +1440,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c1_default>;
 		status = "disabled";
@@ -1455,6 +1456,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c2_default>;
 		status = "disabled";
@@ -1470,6 +1472,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c3_default>;
 		status = "disabled";
@@ -1485,6 +1488,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c4_default>;
 		status = "disabled";
@@ -1500,6 +1504,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c5_default>;
 		status = "disabled";
@@ -1515,6 +1520,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c6_default>;
 		status = "disabled";
@@ -1530,6 +1536,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c7_default>;
 		status = "disabled";
@@ -1545,6 +1552,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c8_default>;
 		status = "disabled";
@@ -1560,6 +1568,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c9_default>;
 		status = "disabled";
@@ -1575,6 +1584,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c10_default>;
 		status = "disabled";
@@ -1590,6 +1600,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c11_default>;
 		status = "disabled";
@@ -1605,6 +1616,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c12_default>;
 		status = "disabled";
@@ -1620,6 +1632,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c13_default>;
 		status = "disabled";
@@ -1635,6 +1648,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c14_default>;
 		status = "disabled";
@@ -1650,6 +1664,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c15_default>;
 		status = "disabled";
@@ -1665,6 +1680,7 @@
 		resets = <&syscon ASPEED_RESET_I2C>;
 		interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
 		bus-frequency = <100000>;
+		buff-mode;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2c16_default>;
 		status = "disabled";
