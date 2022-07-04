@@ -25,8 +25,6 @@
 #include <crypto/sha.h>
 #include <crypto/ecdh.h>
 
-
-
 /* Crypto control registers*/
 #define ASPEED_HACE_SRC			0x00
 #define ASPEED_HACE_DEST		0x04
@@ -202,6 +200,7 @@ struct aspeed_engine_crypto {
 	//dst dma addr in G6 gcm dec mode, the last 16 bytes indicate tag
 	void				*dst_sg_addr;
 	dma_addr_t			dst_sg_dma_addr; //g6
+	int				load_vault_key;
 };
 
 //tctx
@@ -403,5 +402,6 @@ extern int aspeed_register_hace_hash_algs(struct aspeed_hace_dev *hace_dev);
 extern int aspeed_register_hace_rsa_algs(struct aspeed_hace_dev *hace_dev);
 
 extern int find_dummy_key(const char *key, int keylen);
+extern void otp_read_data_buf(u32 offset, u32 *buf, u32 len);
 
 #endif
