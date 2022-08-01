@@ -40,8 +40,8 @@
 void ast_set_index_reg_mask(struct ast_private *ast, uint32_t base,
 			    uint8_t index, uint8_t mask, uint8_t val)
 {
-	uint16_t volatile usData;
-	uint8_t volatile jData;
+	uint16_t usData;
+	uint8_t jData;
 
 	do {
 		ast_io_write8(ast, base, index);
@@ -51,14 +51,14 @@ void ast_set_index_reg_mask(struct ast_private *ast, uint32_t base,
 	jData = (uint8_t)(usData >> 8);
 	jData &= mask;
 	jData |= val;
-	usData = ((uint16_t)jData << 8) | (uint16_t)index;
+	usData = ((uint16_t) jData << 8) | (uint16_t) index;
 	ast_io_write16(ast, base, usData);
 }
 
 uint8_t ast_get_index_reg(struct ast_private *ast, uint32_t base, uint8_t index)
 {
-	uint16_t volatile usData;
-	uint8_t volatile jData;
+	uint16_t usData;
+	uint8_t jData;
 
 	do {
 		ast_io_write8(ast, base, index);
@@ -73,8 +73,8 @@ uint8_t ast_get_index_reg(struct ast_private *ast, uint32_t base, uint8_t index)
 uint8_t ast_get_index_reg_mask(struct ast_private *ast, uint32_t base,
 			       uint8_t index, uint8_t mask)
 {
-	uint16_t volatile usData;
-	uint8_t volatile jData;
+	uint16_t usData;
+	uint8_t jData;
 
 	do {
 		ast_io_write8(ast, base, index);

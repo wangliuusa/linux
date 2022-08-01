@@ -98,6 +98,9 @@ static void ast_pci_remove(struct pci_dev *pdev)
 	struct drm_device *dev = pci_get_drvdata(pdev);
 
 	drm_put_dev(dev);
+	drm_dev_unregister(dev);
+	drm_kms_helper_poll_fini(dev);
+	drm_mode_config_cleanup(dev);
 }
 
 static int ast_drm_freeze(struct drm_device *dev)
