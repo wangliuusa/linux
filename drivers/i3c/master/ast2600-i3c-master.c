@@ -86,6 +86,7 @@
 #define RESPONSE_ERROR_TRANSF_ABORT	8
 #define RESPONSE_ERROR_I2C_W_NACK_ERR	9
 #define RESPONSE_ERROR_EARLY_TERMINATE	10
+#define RESPONSE_ERROR_PEC_ERR		12
 #define RESPONSE_PORT_TID(x)		(((x) & GENMASK(27, 24)) >> 24)
 #define   TID_SLAVE_IBI_DONE		0b0001
 #define   TID_MASTER_READ_DATA		0b0010
@@ -1015,6 +1016,9 @@ static void aspeed_i3c_master_end_xfer_locked(struct aspeed_i3c_master *master, 
 		case RESPONSE_ERROR_TRANSF_ABORT:
 		case RESPONSE_ERROR_CRC:
 		case RESPONSE_ERROR_FRAME:
+		case RESPONSE_ERROR_PEC_ERR:
+			dev_err(master->dev, "RESPONSE ERROR= %x",
+				xfer->cmds[i].error);
 			ret = -EIO;
 			break;
 		case RESPONSE_ERROR_OVER_UNDER_FLOW:
