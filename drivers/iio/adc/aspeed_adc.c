@@ -167,6 +167,8 @@ static int aspeed_adc_set_trim_data(struct platform_device *pdev)
 			trimming_val = ((scu_otp) &
 					(model_data->trim_locate->field)) >>
 				       __ffs(model_data->trim_locate->field);
+			if (!trimming_val)
+				trimming_val = 0x8;
 		}
 	}
 	dev_dbg(data->dev, "trimming val = %d, offset = %08x, fields = %08x\n",
@@ -527,8 +529,9 @@ static int aspeed_adc_probe(struct platform_device *pdev)
 		goto clk_enable_error;
 	aspeed_adc_set_sampling_rate(indio_dev, ASPEED_ADC_DEF_SAMPLING_RATE);
 
-	if (of_find_property(data->dev->of_node, "aspeed,trim-data-valid", NULL))
-		aspeed_adc_set_trim_data(pdev);
+	ret = aspeed_adc_set_trim_data(pdev);
+	if (ret)
+		goto vref_config_error;
 	ret = aspeed_adc_vref_config(pdev);
 	if (ret)
 		goto vref_config_error;
