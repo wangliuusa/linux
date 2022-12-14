@@ -22,12 +22,6 @@ config ASPEED_HOST_BMC_DEV
 config ASPEED_HID
 	tristate "ASPEED HID"
 
-config ASPEED_VIDEO
-	tristate "ASPEED Video Engine driver"
-	default n
-	help
-	  Driver for AST Video Engine
-
 config ASPEED_LPC_CTRL
 	depends on SOC_ASPEED && REGMAP && MFD_SYSCON
 	tristate "Aspeed ast2400/2500 HOST LPC to BMC bridge control"
