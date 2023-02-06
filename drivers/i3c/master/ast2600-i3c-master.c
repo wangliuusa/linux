@@ -58,6 +58,7 @@
 #define COMMAND_PORT_TRANSFER_ARG	0x01
 
 #define COMMAND_ATTR_SLAVE_DATA		0x0
+#define COMMAND_PORT_SLAVE_TID(x)      (((x) << 3) & GENMASK(5, 3))
 #define COMMAND_PORT_SLAVE_DATA_LEN	GENMASK(31, 16)
 
 #define COMMAND_PORT_SDA_DATA_BYTE_3(x)	(((x) << 24) & GENMASK(31, 24))
@@ -84,6 +85,8 @@
 #define RESPONSE_ERROR_I2C_W_NACK_ERR	9
 #define RESPONSE_ERROR_EARLY_TERMINATE	10
 #define RESPONSE_PORT_TID(x)		(((x) & GENMASK(27, 24)) >> 24)
+#define   TID_SLAVE_IBI_DONE		0b0001
+#define   TID_MASTER_READ_DATA		0b0010
 #define   TID_MASTER_WRITE_DATA		0b1000
 #define   TID_CCC_WRITE_DATA		0b1111
 #define RESPONSE_PORT_DATA_LEN(x)	((x) & GENMASK(15, 0))
@@ -395,6 +398,7 @@ struct aspeed_i3c_master {
 				 const struct i3c_slave_payload *payload);
 	} slave_data;
 	struct completion sir_complete;
+	struct completion data_read_complete;
 
 	struct {
 		unsigned long core_rate;
@@ -1887,10 +1891,17 @@ static void aspeed_i3c_slave_resp_handler(struct aspeed_i3c_master *master,
 			if (master->slave_data.callback && (tid == TID_MASTER_WRITE_DATA))
 				master->slave_data.callback(&master->base, &payload);
 		}
-	}
 
-	if (status & INTR_IBI_UPDATED_STAT)
-		complete(&master->sir_complete);
+		if (!error && !nbytes) {
+			if (status & INTR_IBI_UPDATED_STAT && tid == TID_SLAVE_IBI_DONE)
+				complete(&master->sir_complete);
+			else if (tid == TID_MASTER_READ_DATA)
+				complete(&master->data_read_complete);
+			else
+				dev_warn(master->dev, "Unreogized response %x",
+					 resp);
+		}
+	}
 
 	if (has_error) {
 		writel(RESET_CTRL_QUEUES, master->regs + RESET_CTRL);
@@ -2236,7 +2247,8 @@ static int aspeed_i3c_master_put_read_data(struct i3c_master_controller *m,
 
 		aspeed_i3c_master_wr_tx_fifo(master, buf, ibi_notify->len);
 
-		reg = FIELD_PREP(COMMAND_PORT_SLAVE_DATA_LEN, ibi_notify->len);
+		reg = FIELD_PREP(COMMAND_PORT_SLAVE_DATA_LEN, ibi_notify->len) |
+		      COMMAND_PORT_SLAVE_TID(TID_SLAVE_IBI_DONE);
 		writel(reg, master->regs + COMMAND_QUEUE_PORT);
 
 		thld_ctrl = readl(master->regs + QUEUE_THLD_CTRL);
@@ -2246,9 +2258,11 @@ static int aspeed_i3c_master_put_read_data(struct i3c_master_controller *m,
 	}
 
 	buf = (u8 *)data->data;
+	init_completion(&master->data_read_complete);
 	aspeed_i3c_master_wr_tx_fifo(master, buf, data->len);
 
-	reg = FIELD_PREP(COMMAND_PORT_SLAVE_DATA_LEN, data->len);
+	reg = FIELD_PREP(COMMAND_PORT_SLAVE_DATA_LEN, data->len) |
+	      COMMAND_PORT_SLAVE_TID(TID_MASTER_READ_DATA);
 	writel(reg, master->regs + COMMAND_QUEUE_PORT);
 
 	if (ibi_notify) {
@@ -2262,6 +2276,13 @@ static int aspeed_i3c_master_put_read_data(struct i3c_master_controller *m,
 		reg = readl(master->regs + DEVICE_CTRL);
 		reg &= ~DEV_CTRL_SLAVE_PEC_EN;
 		writel(reg, master->regs + DEVICE_CTRL);
+	}
+
+	/* Wait data to be read */
+	if (!wait_for_completion_timeout(&master->data_read_complete,
+					 XFER_TIMEOUT)) {
+		dev_err(master->dev, "wait master read timeout\n");
+		writel(RESET_CTRL_QUEUES, master->regs + RESET_CTRL);
 	}
 
 	return 0;
