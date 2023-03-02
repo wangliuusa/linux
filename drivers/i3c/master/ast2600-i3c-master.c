@@ -646,9 +646,7 @@ static void aspeed_i3c_master_init_group_dat(struct aspeed_i3c_master *master)
 	def_clr = DEV_ADDR_TABLE_IBI_ADDR_MASK;
 
 	/* For now don't support Hot-Join */
-	def_set = DEV_ADDR_TABLE_MR_REJECT | DEV_ADDR_TABLE_SIR_REJECT |
-		  FIELD_PREP(DEV_ADDR_TABLE_IBI_ADDR_MASK,
-			     IBI_ADDR_MASK_LAST_3BITS);
+	def_set = DEV_ADDR_TABLE_MR_REJECT | DEV_ADDR_TABLE_SIR_REJECT;
 
 	for (i = 0; i < MAX_GROUPS; i++) {
 		dev_grp = &master->dev_group[i];
@@ -672,6 +670,8 @@ static int aspeed_i3c_master_set_group_dat(struct aspeed_i3c_master *master, u8 
 	struct aspeed_i3c_dev_group *dev_grp = &master->dev_group[ADDR_GRP(addr)];
 	u8 idx = ADDR_HID(addr);
 
+	val &= ~DEV_ADDR_TABLE_DA_PARITY;
+	val |= FIELD_PREP(DEV_ADDR_TABLE_DA_PARITY, even_parity(addr));
 	dev_grp->dat[idx] = val;
 
 	if (val) {
@@ -687,6 +687,8 @@ static int aspeed_i3c_master_set_group_dat(struct aspeed_i3c_master *master, u8 
 				goto out;
 
 			master->free_pos &= ~BIT(dev_grp->hw_index);
+			val &= dev_grp->mask.clr;
+			val |= dev_grp->mask.set;
 			writel(val, master->regs + DEV_ADDR_TABLE_LOC(
 							   master->datstartaddr,
 							   dev_grp->hw_index));
@@ -699,9 +701,10 @@ static int aspeed_i3c_master_set_group_dat(struct aspeed_i3c_master *master, u8 
 		 * are free.
 		 */
 		if (dev_grp->free_pos == ALL_DEVS_IN_GROUP_ARE_FREE) {
-			writel(0, master->regs + DEV_ADDR_TABLE_LOC(
-							 master->datstartaddr,
-							 dev_grp->hw_index));
+			writel(dev_grp->mask.set,
+			       master->regs +
+				       DEV_ADDR_TABLE_LOC(master->datstartaddr,
+							  dev_grp->hw_index));
 			master->free_pos |= BIT(dev_grp->hw_index);
 			dev_grp->hw_index = -1;
 		}
@@ -1571,23 +1574,6 @@ static int aspeed_i3c_master_send_ccc_cmd(struct i3c_master_controller *m,
 	((I3C_PID_PART_ID(x) & PID_PART_ID_AST1030_A0) ==                      \
 	 PID_PART_ID_AST1030_A0)
 
-static int aspeed_i3c_master_extend_ibi_payload(struct i3c_master_controller *m,
-						struct i3c_dev_desc *i3cdev)
-{
-	u64 pid;
-	int ret = 0;
-
-	pid = i3cdev->info.pid;
-	if (IS_MANUF_ID_ASPEED(pid) &&
-	    (IS_PART_ID_AST2600_SERIES(pid) || IS_PART_ID_AST1030_A0(pid))) {
-		ret = i3c_master_setmrl_locked(
-			m, &i3cdev->info, CONFIG_AST2600_I3C_MRL,
-			CONFIG_AST2600_I3C_IBI_MAX_PAYLOAD);
-	}
-
-	return ret;
-}
-
 static int aspeed_i3c_master_daa(struct i3c_master_controller *m)
 {
 	struct aspeed_i3c_master *master = to_aspeed_i3c_master(m);
@@ -1616,10 +1602,13 @@ static int aspeed_i3c_master_daa(struct i3c_master_controller *m)
 		last_addr = ret;
 		last_grp = ADDR_GRP(last_addr);
 
-		writel(FIELD_PREP(DEV_ADDR_TABLE_DYNAMIC_ADDR, ret) |
-			       FIELD_PREP(DEV_ADDR_TABLE_DA_PARITY, p),
-		       master->regs +
-			       DEV_ADDR_TABLE_LOC(master->datstartaddr, pos));
+		dat = readl(master->regs +
+			    DEV_ADDR_TABLE_LOC(master->datstartaddr, pos));
+		dat &= ~(DEV_ADDR_TABLE_DYNAMIC_ADDR |
+			 DEV_ADDR_TABLE_DA_PARITY);
+		dat |= FIELD_PREP(DEV_ADDR_TABLE_DYNAMIC_ADDR, ret) |
+		       FIELD_PREP(DEV_ADDR_TABLE_DA_PARITY, p);
+		writel(dat, master->regs + DEV_ADDR_TABLE_LOC(master->datstartaddr, pos));
 	}
 
 	if (!ndevs)
@@ -1660,10 +1649,12 @@ static int aspeed_i3c_master_daa(struct i3c_master_controller *m)
 		}
 
 		/* cleanup the free HW DATs */
-		if (master->free_pos & BIT(pos))
-			writel(0, master->regs +
-					  DEV_ADDR_TABLE_LOC(
-						  master->datstartaddr, pos));
+		if (master->free_pos & BIT(pos)) {
+			dat = readl(master->regs + DEV_ADDR_TABLE_LOC(master->datstartaddr, pos));
+			dat &= ~(DEV_ADDR_TABLE_DYNAMIC_ADDR | DEV_ADDR_TABLE_DA_PARITY);
+			dat |= FIELD_PREP(DEV_ADDR_TABLE_DA_PARITY, even_parity(0));
+			writel(dat, master->regs + DEV_ADDR_TABLE_LOC(master->datstartaddr, pos));
+		}
 	}
 
 	aspeed_i3c_master_free_xfer(xfer);
@@ -2210,7 +2201,8 @@ static int aspeed_i3c_master_disable_ibi(struct i3c_dev_desc *dev)
 		sirmap |= BIT(data->ibi);
 		writel(sirmap, master->regs + IBI_SIR_REQ_REJECT);
 
-		dev_grp->mask.clr |= DEV_ADDR_TABLE_IBI_WITH_DATA;
+		dev_grp->mask.clr |= DEV_ADDR_TABLE_IBI_WITH_DATA |
+				     DEV_ADDR_TABLE_IBI_ADDR_MASK;
 		dev_grp->mask.set &= ~DEV_ADDR_TABLE_IBI_WITH_DATA;
 		dev_grp->mask.set |= DEV_ADDR_TABLE_SIR_REJECT;
 	}
@@ -2234,16 +2226,21 @@ static int aspeed_i3c_master_enable_ibi(struct i3c_dev_desc *dev)
 	struct aspeed_i3c_dev_group *dev_grp =
 		aspeed_i3c_master_get_group(master, dev->info.dyn_addr);
 	unsigned long flags;
-	u32 sirmap, dat;
+	u32 sirmap, hj_nack;
+	u32 sirmap_backup, mask_clr_backup, mask_set_backup;
 	int ret;
 
 	spin_lock_irqsave(&master->ibi.lock, flags);
-	sirmap = readl(master->regs + IBI_SIR_REQ_REJECT);
-	sirmap &= ~BIT(data->ibi);
+	sirmap_backup = readl(master->regs + IBI_SIR_REQ_REJECT);
+	sirmap = sirmap_backup & ~BIT(data->ibi);
 	writel(sirmap, master->regs + IBI_SIR_REQ_REJECT);
 
-	dev_grp->mask.clr |= DEV_ADDR_TABLE_SIR_REJECT;
+	mask_clr_backup = dev_grp->mask.clr;
+	mask_set_backup = dev_grp->mask.set;
+	dev_grp->mask.clr |= DEV_ADDR_TABLE_SIR_REJECT | DEV_ADDR_TABLE_IBI_ADDR_MASK;
 	dev_grp->mask.set &= ~DEV_ADDR_TABLE_SIR_REJECT;
+	dev_grp->mask.set |= FIELD_PREP(DEV_ADDR_TABLE_IBI_ADDR_MASK,
+					IBI_ADDR_MASK_LAST_3BITS);
 	if (IS_MANUF_ID_ASPEED(dev->info.pid))
 		dev_grp->mask.set |= DEV_ADDR_TABLE_IBI_PEC_EN;
 	if (dev->info.bcr & I3C_BCR_IBI_PAYLOAD)
@@ -2255,27 +2252,23 @@ static int aspeed_i3c_master_enable_ibi(struct i3c_dev_desc *dev)
 		dev->info.dyn_addr, dev_grp->hw_index, data->ibi, dev_grp->mask.set,
 		dev_grp->mask.clr);
 
+	/* Dat will be synchronized before sending the CCC */
 	ret = i3c_master_enec_locked(m, dev->info.dyn_addr,
 				     I3C_CCC_EVENT_SIR);
 
-	aspeed_i3c_master_extend_ibi_payload(m, dev);
-
 	if (ret) {
 		spin_lock_irqsave(&master->ibi.lock, flags);
-		sirmap = readl(master->regs + IBI_SIR_REQ_REJECT);
-		sirmap |= BIT(data->ibi);
-		writel(sirmap, master->regs + IBI_SIR_REQ_REJECT);
+		writel(sirmap_backup, master->regs + IBI_SIR_REQ_REJECT);
 
-		dat = aspeed_i3c_master_get_group_dat(master, dev->info.dyn_addr);
-		dat |= DEV_ADDR_TABLE_SIR_REJECT;
-		dat &= ~DEV_ADDR_TABLE_IBI_WITH_DATA;
-		aspeed_i3c_master_set_group_dat(master, dev->info.dyn_addr, dat);
+		dev_grp->mask.clr = mask_clr_backup;
+		dev_grp->mask.set = mask_set_backup;
 		aspeed_i3c_master_sync_hw_dat(master, dev->info.dyn_addr);
 		spin_unlock_irqrestore(&master->ibi.lock, flags);
 	}
 
 	sirmap = readl(master->regs + IBI_SIR_REQ_REJECT);
-	if (sirmap == IBI_REQ_REJECT_ALL)
+	hj_nack = readl(master->regs + DEVICE_CTRL) & DEV_CTRL_HOT_JOIN_NACK;
+	if (sirmap == IBI_REQ_REJECT_ALL && hj_nack)
 		aspeed_i3c_master_disable_ibi_irq(master);
 	else
 		aspeed_i3c_master_enable_ibi_irq(master);
