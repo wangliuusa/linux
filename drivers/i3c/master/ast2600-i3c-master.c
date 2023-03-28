@@ -464,20 +464,12 @@ static void aspeed_i3c_isolate_scl_sda(struct aspeed_i3c_master *master, bool is
 
 static void aspeed_i3c_toggle_scl_in(struct aspeed_i3c_master *master, u32 times)
 {
-	regmap_write_bits(master->i3cg, I3CG_REG1(master->channel),
-			  SCL_IN_SW_MODE_VAL, SCL_IN_SW_MODE_VAL);
-	regmap_write_bits(master->i3cg, I3CG_REG1(master->channel),
-			  SCL_IN_SW_MODE_EN, SCL_IN_SW_MODE_EN);
-
 	for (; times; times--) {
 		regmap_write_bits(master->i3cg, I3CG_REG1(master->channel),
 				  SCL_IN_SW_MODE_VAL, 0);
 		regmap_write_bits(master->i3cg, I3CG_REG1(master->channel),
 				  SCL_IN_SW_MODE_VAL, SCL_IN_SW_MODE_VAL);
 	}
-
-	regmap_write_bits(master->i3cg, I3CG_REG1(master->channel),
-			  SCL_IN_SW_MODE_EN, 0);
 }
 
 static bool aspeed_i3c_fsm_is_idle(struct aspeed_i3c_master *master)
@@ -2401,13 +2393,16 @@ static int aspeed_i3c_slave_reset_queue(struct aspeed_i3c_master *master)
 {
 	u32 wait_enable_us;
 	u32 tmp;
+	int ret = 0;
 
+	aspeed_i3c_isolate_scl_sda(master, true);
 	aspeed_i3c_master_disable(master);
 	aspeed_i3c_toggle_scl_in(master, 8);
 	if (readl(master->regs + DEVICE_CTRL) & DEV_CTRL_ENABLE) {
 		dev_warn(master->dev,
 			 "Master read timeout: failed to disable controller");
-		return -EACCES;
+		ret = -EACCES;
+		goto reset_finished;
 	}
 	writel(RESET_CTRL_QUEUES, master->regs + RESET_CTRL);
 	aspeed_i3c_master_enable(master);
@@ -2419,10 +2414,11 @@ static int aspeed_i3c_slave_reset_queue(struct aspeed_i3c_master *master)
 	if (!(readl(master->regs + DEVICE_CTRL) & DEV_CTRL_ENABLE)) {
 		dev_warn(master->dev,
 			 "Master read timeout: failed to enable controller");
-		return -EACCES;
+		ret = -EACCES;
 	}
-
-	return 0;
+reset_finished:
+	aspeed_i3c_isolate_scl_sda(master, false);
+	return ret;
 }
 
 static int aspeed_i3c_master_put_read_data(struct i3c_master_controller *m,
