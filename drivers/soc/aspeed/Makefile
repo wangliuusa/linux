@@ -13,16 +13,10 @@ obj-$(CONFIG_ASPEED_HOST_XDMA)	+= aspeed-host-xdma.o
 obj-$(CONFIG_ASPEED_VGA_SHAREDMEM)	+= aspeed-vga-sharedmem.o
 obj-$(CONFIG_ASPEED_MCTP)	+= aspeed-mctp.o
 obj-$(CONFIG_ASPEED_UDMA)	+= aspeed-udma.o
-#obj-$(CONFIG_ASPEED_ESPI) += aspeed-espi-ctrl.o \
-			     aspeed-espi-peripheral.o \
-			     aspeed-espi-vw.o \
-			     aspeed-espi-oob.o \
-			     aspeed-espi-flash.o #\
-			     aspeed-espi-mmbi.o
-obj-$(CONFIG_ASPEED_ESPI)	+= aspeed-espi-ctrl.o
-obj-$(CONFIG_ASPEED_ESPI_MMBI)	+= aspeed-espi-mmbi.o
 obj-$(CONFIG_ASPEED_SSP)        += aspeed-ssp.o
 obj-$(CONFIG_ASPEED_UART_ROUTING)	+= aspeed-uart-routing.o
+obj-$(CONFIG_AST2500_ESPI)		+= ast2500-espi.o
+obj-$(CONFIG_AST2600_ESPI)		+= ast2600-espi.o
 obj-$(CONFIG_ASPEED_RVAS)		+= rvas/
 obj-$(CONFIG_ASPEED_VGA_SHAREDMEM)	+= aspeed-vga-sharedmem.o
 obj-$(CONFIG_ASPEED_OTP)	+= aspeed-otp.o

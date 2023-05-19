@@ -102,8 +102,10 @@ config ASPEED_UDMA
 	  buffer and the UART/VUART devices.
 
 config ASPEED_ESPI
-	tristate "Aspeed eSPI Engine Driver"
-	depends on SOC_ASPEED && REGMAP && MFD_SYSCON
+	bool "ASPEED eSPI slave driver"
+	select AST2500_ESPI if MACH_ASPEED_G5
+	select AST2600_ESPI if MACH_ASPEED_G6
+	default n
 	help
 	  Enable support for the Aspeed eSPI engine. The eSPI engine
 	  plays as a slave device in BMC to communicate with the host
@@ -111,11 +113,17 @@ config ASPEED_ESPI
 	  namely peripheral, virtual wire, out-of-band, and flash are
 	  supported.
 
-config ASPEED_ESPI_MMBI
-	tristate "Aspeed eSPI MMBI Driver"
+config AST2500_ESPI
+	bool
 	depends on ASPEED_ESPI
 	help
-	  Control Aspeed eSPI MMBI driver
+	  Enable driver support for Aspeed AST2500 eSPI engine.
+
+config AST2600_ESPI
+	bool
+	depends on ASPEED_ESPI
+	help
+	  Enable driver support for Aspeed AST2600 eSPI engine.
 
 config ASPEED_SSP
 	tristate "ASPEED SSP loader"
