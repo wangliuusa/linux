@@ -64,6 +64,7 @@ struct aspeed_sdc_info ast2600_sdc_info = {
 	.flag = PROBE_AFTER_ASSET_DEASSERT
 };
 
+#ifdef CONFIG_MACH_ASPEED_G6
 static void aspeed_sdc_configure_8bit_mode(struct aspeed_sdc *sdc,
 					   struct aspeed_sdhci *sdhci,
 					   bool bus8)
@@ -347,6 +348,7 @@ static struct sdhci_ops aspeed_sdhci_ops = {
 	.set_uhs_signaling = sdhci_set_uhs_signaling,
 	.platform_execute_tuning = aspeed_sdhci_execute_tuning,
 };
+#endif
 
 static struct sdhci_pltfm_data aspeed_sdhci_pdata = {
 #ifndef CONFIG_MACH_ASPEED_G6
