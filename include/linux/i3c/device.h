@@ -50,6 +50,27 @@ enum i3c_hdr_mode {
 };
 
 /**
+ * struct i3c_hdr_cmd - I3C HDR command
+ * @mode: HDR mode selected for this command
+ * @code: command opcode
+ * @addr: I3C dynamic address
+ * @ndatawords: number of data words (a word is 16bits wide)
+ * @data: input/output buffer
+ * @err: I3C error code
+ */
+struct i3c_hdr_cmd {
+	enum i3c_hdr_mode mode;
+	u8 code;
+	u8 addr;
+	int ndatawords;
+	union {
+		void *in;
+		const void *out;
+	} data;
+	enum i3c_error_code err;
+};
+
+/**
  * struct i3c_priv_xfer - I3C SDR private transfer
  * @rnw: encodes the transfer direction. true for a read, false for a write
  * @len: transfer length in bytes of the transfer
@@ -71,9 +92,11 @@ struct i3c_priv_xfer {
 /**
  * enum i3c_dcr - I3C DCR values
  * @I3C_DCR_GENERIC_DEVICE: generic I3C device
+ * @I3C_DCR_HUB: I3C HUB device
  */
 enum i3c_dcr {
 	I3C_DCR_GENERIC_DEVICE = 0,
+	I3C_DCR_HUB = 194,
 	I3C_DCR_JESD403_BEGIN = 208,
 	I3C_DCR_THERMAL_SENSOR_FIRST = 210,
 	I3C_DCR_THERMAL_SENSOR_SECOND = 214,
@@ -209,8 +232,9 @@ struct i3c_device;
 struct i3c_driver {
 	struct device_driver driver;
 	int (*probe)(struct i3c_device *dev);
-	int (*remove)(struct i3c_device *dev);
+	void (*remove)(struct i3c_device *dev);
 	const struct i3c_device_id *id_table;
+	bool target;
 };
 
 static inline struct i3c_driver *drv_to_i3cdrv(struct device_driver *drv)
@@ -326,6 +350,12 @@ int i3c_device_do_priv_xfers(struct i3c_device *dev,
 			     struct i3c_priv_xfer *xfers,
 			     int nxfers);
 
+int i3c_device_send_hdr_cmds(struct i3c_device *dev,
+			     struct i3c_hdr_cmd *cmds,
+			     int ncmds);
+
+int i3c_device_generate_ibi(struct i3c_device *dev, const u8 *data, int len);
+
 void i3c_device_get_info(struct i3c_device *dev, struct i3c_device_info *info);
 
 struct i3c_ibi_payload {
@@ -372,6 +402,12 @@ int i3c_device_setmrl_ccc(struct i3c_device *dev, struct i3c_device_info *info, 
 int i3c_device_setmwl_ccc(struct i3c_device *dev, struct i3c_device_info *info, u16 write_len);
 int i3c_device_getmrl_ccc(struct i3c_device *dev, struct i3c_device_info *info);
 int i3c_device_getmwl_ccc(struct i3c_device *dev, struct i3c_device_info *info);
+
+struct i3c_target_read_setup {
+	void (*handler)(struct i3c_device *dev, const u8 *data, size_t len);
+};
+
+int i3c_target_read_register(struct i3c_device *dev, const struct i3c_target_read_setup *setup);
 
 int i3c_device_control_pec(struct i3c_device *dev, bool pec);
 

@@ -166,7 +166,7 @@ out:
 	return (!ret) ? count : ret;
 }
 
-static int i3c_ast_bridgeic_remove(struct i3c_device *i3cdev)
+static void i3c_ast_bridgeic_remove(struct i3c_device *i3cdev)
 {
 	struct device *dev = &i3cdev->dev;
 	struct astbic *astbic;
@@ -179,8 +179,6 @@ static int i3c_ast_bridgeic_remove(struct i3c_device *i3cdev)
 	kernfs_put(astbic->kn);
 	sysfs_remove_bin_file(&dev->kobj, &astbic->bin);
 	devm_kfree(dev, astbic);
-
-	return 0;
 }
 
 static int i3c_ast_bridgeic_probe(struct i3c_device *i3cdev)

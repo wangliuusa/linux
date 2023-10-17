@@ -51,6 +51,73 @@ int i3c_device_do_priv_xfers(struct i3c_device *dev,
 EXPORT_SYMBOL_GPL(i3c_device_do_priv_xfers);
 
 /**
+ * i3c_device_send_hdr_cmds() - send HDR commands to a specific device
+ *
+ * @dev: device to which these commands should be sent
+ * @cmds: array of commands
+ * @ncmds: number of commands
+ *
+ * Send one or several HDR commands to @dev.
+ *
+ * This function can sleep and thus cannot be called in atomic context.
+ *
+ * Return: 0 in case of success, a negative error core otherwise.
+ */
+int i3c_device_send_hdr_cmds(struct i3c_device *dev, struct i3c_hdr_cmd *cmds,
+			     int ncmds)
+{
+	struct i3c_master_controller *master;
+	enum i3c_hdr_mode mode;
+	int ret, i;
+
+	if (ncmds < 1)
+		return 0;
+
+	mode = cmds[0].mode;
+	for (i = 1; i < ncmds; i++) {
+		if (mode != cmds[i].mode)
+			return -EINVAL;
+	}
+
+	master = i3c_dev_get_master(dev->desc);
+	if (!master)
+		return -EINVAL;
+
+	i3c_bus_normaluse_lock(&master->bus);
+	for (i = 0; i < ncmds; i++)
+		cmds[i].addr = dev->desc->info.dyn_addr;
+
+	ret = i3c_master_send_hdr_cmds_locked(master, cmds, ncmds);
+	i3c_bus_normaluse_unlock(&master->bus);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(i3c_device_send_hdr_cmds);
+
+/**
+ * i3c_device_generate_ibi() - request In-Band Interrupt
+ *
+ * @dev: target device
+ * @data: IBI payload
+ * @len: payload length in bytes
+ *
+ * Request In-Band Interrupt with or without data payload.
+ *
+ * Return: 0 in case of success, a negative error code otherwise.
+ */
+int i3c_device_generate_ibi(struct i3c_device *dev, const u8 *data, int len)
+{
+	int ret;
+
+	i3c_bus_normaluse_lock(dev->bus);
+	ret = i3c_dev_generate_ibi_locked(dev->desc, data, len);
+	i3c_bus_normaluse_unlock(dev->bus);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(i3c_device_generate_ibi);
+
+/**
  * i3c_device_get_info() - get I3C device information
  *
  * @dev: device we want information on
@@ -240,40 +307,34 @@ i3c_device_match_id(struct i3c_device *i3cdev,
 {
 	struct i3c_device_info devinfo;
 	const struct i3c_device_id *id;
+	u16 manuf, part, ext_info;
+	bool rndpid;
 
 	i3c_device_get_info(i3cdev, &devinfo);
 
-	/*
-	 * The lower 32bits of the provisional ID is just filled with a random
-	 * value, try to match using DCR info.
-	 */
-	if (!I3C_PID_RND_LOWER_32BITS(devinfo.pid)) {
-		u16 manuf = I3C_PID_MANUF_ID(devinfo.pid);
-		u16 part = I3C_PID_PART_ID(devinfo.pid);
-		u16 ext_info = I3C_PID_EXTRA_INFO(devinfo.pid);
+	manuf = I3C_PID_MANUF_ID(devinfo.pid);
+	part = I3C_PID_PART_ID(devinfo.pid);
+	ext_info = I3C_PID_EXTRA_INFO(devinfo.pid);
+	rndpid = I3C_PID_RND_LOWER_32BITS(devinfo.pid);
 
-		/* First try to match by manufacturer/part ID. */
-		for (id = id_table; id->match_flags != 0; id++) {
-			if ((id->match_flags & I3C_MATCH_MANUF_AND_PART) !=
-			    I3C_MATCH_MANUF_AND_PART)
-				continue;
-
-			if (manuf != id->manuf_id || part != id->part_id)
-				continue;
-
-			if ((id->match_flags & I3C_MATCH_EXTRA_INFO) &&
-			    ext_info != id->extra_info)
-				continue;
-
-			return id;
-		}
-	}
-
-	/* Fallback to DCR match. */
 	for (id = id_table; id->match_flags != 0; id++) {
 		if ((id->match_flags & I3C_MATCH_DCR) &&
-		    id->dcr == devinfo.dcr)
-			return id;
+		    id->dcr != devinfo.dcr)
+			continue;
+
+		if ((id->match_flags & I3C_MATCH_MANUF) &&
+		    id->manuf_id != manuf)
+			continue;
+
+		if ((id->match_flags & I3C_MATCH_PART) &&
+		    (rndpid || id->part_id != part))
+			continue;
+
+		if ((id->match_flags & I3C_MATCH_EXTRA_INFO) &&
+		    (rndpid || id->extra_info != ext_info))
+			continue;
+
+		return id;
 	}
 
 	return NULL;
@@ -294,6 +355,11 @@ int i3c_driver_register_with_owner(struct i3c_driver *drv, struct module *owner)
 {
 	drv->driver.owner = owner;
 	drv->driver.bus = &i3c_bus_type;
+
+	if (!drv->probe) {
+		pr_err("Trying to register an i3c driver without probe callback\n");
+		return -EINVAL;
+	}
 
 	return driver_register(&drv->driver);
 }
@@ -337,7 +403,7 @@ int i3c_device_getstatus_ccc(struct i3c_device *dev, struct i3c_device_info *inf
 }
 EXPORT_SYMBOL_GPL(i3c_device_getstatus_ccc);
 
-/*
+/**
  * i3c_device_control_pec() - enable or disable PEC support in HW
  *
  * @dev: I3C device to get the status for

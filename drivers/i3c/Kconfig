@@ -21,6 +21,8 @@ menuconfig I3C
 
 if I3C
 
+source "drivers/i3c/mctp/Kconfig"
+
 config I3CDEV
 	tristate "I3C device interface"
 	depends on I3C
@@ -35,14 +37,33 @@ config I3CDEV
 	  Note that this application programming interface is EXPERIMENTAL
 	  and hence SUBJECT TO CHANGE WITHOUT NOTICE while it stabilizes.
 
+config I3C_HUB
+	tristate "I3C HUB support"
+	depends on I3C
+	select REGMAP_I3C
+	help
+	  This enables support for I3C HUB. Say Y here to use I3C HUB driver to
+	  configure I3C HUB device.
+
+	  I3C HUB drivers will be loaded automatically when I3C device with BCR
+	  equals to 0xC2 (HUB device) is detected on the bus.
+
+
 if I3CDEV
 config I3CDEV_FORCE_CREATE
 	bool "force create I3C device interface"
-	default y
+	default n
 	help
 	  Say 'y' to force create I3C devices under /dev/bus/i3c/ regardless of
 	  driver binding.  This option is to help development so it shall be
 	  turned off in production.
+
+config I3CDEV_XFER_HDR_DDR
+	bool "transfer with HDR-DDR mode"
+	default y
+	help
+	  Say 'y' to use the HDR-DDR mode to transfer data if the device support it.
+	  This option is to help development so it shall be turned off in production.
 endif # I3CDEV
 
 config I3C_AST_BRIDGE_IC
@@ -79,4 +100,5 @@ config I3C_SLAVE_EEPROM
 endchoice
 
 source "drivers/i3c/master/Kconfig"
+
 endif # I3C

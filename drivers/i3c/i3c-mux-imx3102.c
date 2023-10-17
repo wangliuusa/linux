@@ -194,7 +194,7 @@ static int i3c_mux_imx3102_probe(struct i3c_device *i3cdev)
 	return 0;
 }
 
-static int i3c_mux_imx3102_remove(struct i3c_device *i3cdev)
+static void i3c_mux_imx3102_remove(struct i3c_device *i3cdev)
 {
 	struct device *dev = &i3cdev->dev;
 	struct imx3102 *imx3102;
@@ -204,8 +204,6 @@ static int i3c_mux_imx3102_remove(struct i3c_device *i3cdev)
 	kernfs_put(imx3102->kn);
 	sysfs_remove_bin_file(&dev->kobj, &imx3102->ownership);
 	devm_kfree(dev, imx3102);
-
-	return 0;
 }
 
 static const struct i3c_device_id i3c_mux_imx3102_ids[] = {
