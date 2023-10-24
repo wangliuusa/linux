@@ -279,11 +279,11 @@
 
 &mctp0 {
 	status = "okay";
+	memory-region = <&mctp0_reserved>;
 };
 
 &chassis {
 	status = "okay";
-	memory-region = <&mctp0_reserved>;
 };
 
 &sgpiom0 {
