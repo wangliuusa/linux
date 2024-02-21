@@ -642,11 +642,17 @@
 };
 
 &ufs_controller {
-	status = "okay";
+	status = "disabled";//"okay";
+	//liuw@supermicro.com; disable ufs due to boot error 
+	//[188.976951] aspeed-ufshcd 12c08200.ufshc: ufshcd_check_errors: 
+	//saved_err 0x4 saved_uic_err 0x46
 };
 
 &ufs {
-	status = "okay";
+	status = "disabled";//"okay";
+	//liuw@supermicro.com; disable ufs due to boot error 
+	//[188.976951] aspeed-ufshcd 12c08200.ufshc: ufshcd_check_errors: 
+	//saved_err 0x4 saved_uic_err 0x46
 	lanes-per-direction = <2>;
 };
 
